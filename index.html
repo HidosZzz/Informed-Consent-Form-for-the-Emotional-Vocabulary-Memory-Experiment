@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>情绪词汇记忆实验知情同意书签名程序</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --paper: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #d1d5db;
+      --accent: #2563eb;
+      --danger: #dc2626;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.75;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      background: rgba(255,255,255,0.95);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 15px;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+    }
+
+    button.secondary { background: #374151; }
+    button.light { background: #e5e7eb; color: #111827; }
+    button.danger { background: var(--danger); }
+
+    .hint {
+      width: 100%;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .paper {
+      width: min(920px, calc(100% - 24px));
+      margin: 24px auto;
+      padding: clamp(22px, 5vw, 56px);
+      background: var(--paper);
+      border-radius: 18px;
+      box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: clamp(24px, 5vw, 34px);
+      margin: 0 0 24px;
+      letter-spacing: 0.04em;
+    }
+
+    h2 {
+      margin: 28px 0 8px;
+      font-size: 19px;
+    }
+
+    p { margin: 10px 0; }
+
+    .section { margin-top: 18px; }
+
+    .signature-area {
+      margin-top: 36px;
+      padding-top: 22px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      gap: 10px;
+      align-items: center;
+      margin: 12px 0;
+    }
+
+    input {
+      width: 100%;
+      border: none;
+      border-bottom: 1.5px solid #9ca3af;
+      padding: 8px 4px;
+      font-size: 16px;
+      background: transparent;
+      outline: none;
+    }
+
+    .signature-box {
+      margin-top: 12px;
+      border: 1.5px solid #9ca3af;
+      border-radius: 14px;
+      background: #fff;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 210px;
+      background: #fff;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .signature-caption {
+      padding: 8px 12px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .signed-preview {
+      margin-top: 18px;
+      display: none;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .signed-preview .label {
+      font-weight: 600;
+      min-width: 110px;
+    }
+
+    .signature-line {
+      width: min(360px, 100%);
+      min-height: 86px;
+      display: flex;
+      align-items: flex-end;
+      border-bottom: 1.5px solid #111827;
+      padding: 0 8px 4px;
+    }
+
+    .signed-preview img {
+      max-width: 300px;
+      max-height: 120px;
+      object-fit: contain;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    @media print {
+      body { background: white; }
+      .toolbar { display: none !important; }
+      .paper {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        border-radius: 0;
+      }
+      .draw-panel, .signature-box, .signature-caption, .status, .print-hide {
+        display: none !important;
+      }
+      .signed-preview { display: flex !important; }
+      input {
+        border-bottom: none;
+        padding: 0;
+      }
+      h1 { margin-top: 0; }
+      @page { margin: 18mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="confirmSignature()">确认签名</button>
+    <button class="light" onclick="clearSignature()">清除重签</button>
+    <button class="secondary" onclick="printSignedDocument()">打印 / 另存为 PDF</button>
+    <button class="light" onclick="downloadSignaturePng()">下载签名图片</button>
+    <div class="hint">建议流程：填写姓名 → 手写签名 → 点击“确认签名”。确认后签名会同步到正式签名栏，手写框会自动隐藏；需要修改时点“清除重签”。</div>
+  </div>
+
+  <main class="paper" id="paper">
+    <h1>情绪词汇记忆实验知情同意书</h1>
+
+    <p>您好，感谢您对我们研究的支持！请在听完主试的指导语之后签署知情同意书。该实验预计需要花费90分钟左右（后续有不限时作答环节，具体时间因人而异）。由于您符合被试的基本条件，特邀请您参加此项实验。请您在实验之前了解、明晰以下事项，以确定是否参与此研究。</p>
+
+    <section class="section">
+      <h2>一、受试者在参加本研究过程中的权利和义务</h2>
+      <p><strong>1. 被试者的权利：</strong>您有权要求研究人员对研究过程中可能发生的事情向受试者进行详细的解释。受试者无论出于任何原因，在任何时候均有权要求退出研究，研究者将不会对此做出任何硬性的阻挠。</p>
+      <p><strong>2. 受试者的义务：</strong>由于研究所采用的精密仪器设备价格昂贵，受试者承诺在研究过程中将遵守研究人员的要求，不做出任何有可能对仪器设备造成危险的举动。</p>
+    </section>
+
+    <section class="section">
+      <h2>二、实验报酬与保密原则</h2>
+      <p><strong>1. 实验报酬：</strong>如您顺利完成实验，您将会获得 ¥25 作为报酬。由于这是一项记忆实验，需要有正确率作为合格指标，如果您的记忆正确率表现优异，我们将会给予 25 元的被试费。如果您的记忆正确率低于猜测水平即 50%，则该数据对我们来说就是无效，我们会发放 10 元的被试费。</p>
+      <p><strong>2. 保密原则：</strong>本研究负责人与主持人承诺，将对与您有关的数据和信息进行严格保密。必要时，政府管理部门或伦理审查委员会成员可按规定查阅您的实验相关资料。对于本实验的相关机密信息，您也必须遵守保密原则，不能将实验信息泄露给第三方。</p>
+    </section>
+
+    <p>在研究开始前，本知情同意书中所列举的关于受试者的一般情况调查均由本人（受试者）根据本人的真实情况填写。研究人员已对我在研究中的权利和义务做了详尽的解释，对于我询问的问题也给与了解答。</p>
+
+    <section class="signature-area">
+      <p><strong>已阅读过以上约定，并同意。</strong></p>
+
+      <div class="form-row">
+        <label for="participantName">受试者姓名</label>
+        <input id="participantName" placeholder="请填写姓名" />
+      </div>
+
+      <div class="form-row">
+        <label for="dateInput">日期</label>
+        <input id="dateInput" />
+      </div>
+
+      <div class="draw-panel" id="drawPanel">
+        <p><strong>请在下方手写签名：</strong></p>
+        <div class="signature-box">
+          <canvas id="signatureCanvas"></canvas>
+          <div class="signature-caption">手机端请用手指签名；电脑端请用鼠标签名。</div>
+        </div>
+      </div>
+
+      <div class="signed-preview" id="signedPreview">
+        <span class="label">受试者签名：</span>
+        <div class="signature-line">
+          <img id="signatureImage" alt="受试者签名" />
+        </div>
+      </div>
+
+      <div class="status" id="status">尚未确认签名。</div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('signatureCanvas');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+    const dateInput = document.getElementById('dateInput');
+    const participantName = document.getElementById('participantName');
+    const signatureImage = document.getElementById('signatureImage');
+    const signedPreview = document.getElementById('signedPreview');
+    const drawPanel = document.getElementById('drawPanel');
+
+    let drawing = false;
+    let hasDrawn = false;
+    let lastX = 0;
+    let lastY = 0;
+    let savedSignatureDataUrl = '';
+
+    function formatToday() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}年${m}月${day}日`;
+    }
+
+    dateInput.value = formatToday();
+
+    function resizeCanvas() {
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const rect = canvas.getBoundingClientRect();
+      let oldData = null;
+
+      if (hasDrawn) {
+        oldData = canvas.toDataURL('image/png');
+      }
+
+      canvas.width = rect.width * ratio;
+      canvas.height = 210 * ratio;
+      canvas.style.height = '210px';
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#111827';
+
+      if (oldData) {
+        const img = new Image();
+        img.onload = () => ctx.drawImage(img, 0, 0, rect.width, 210);
+        img.src = oldData;
+      }
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function getPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      const e = event.touches ? event.touches[0] : event;
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+
+    function startDrawing(event) {
+      event.preventDefault();
+      drawing = true;
+      const p = getPoint(event);
+      lastX = p.x;
+      lastY = p.y;
+    }
+
+    function draw(event) {
+      if (!drawing) return;
+      event.preventDefault();
+      const p = getPoint(event);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      lastX = p.x;
+      lastY = p.y;
+      hasDrawn = true;
+      statusEl.textContent = '已检测到签名，请点击“确认签名”。';
+    }
+
+    function stopDrawing(event) {
+      if (event) event.preventDefault();
+      drawing = false;
+    }
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    window.addEventListener('mouseup', stopDrawing);
+
+    canvas.addEventListener('touchstart', startDrawing, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDrawing, { passive: false });
+
+    function confirmSignature() {
+      if (!hasDrawn) {
+        alert('请先在签名框中手写签名。');
+        return;
+      }
+      savedSignatureDataUrl = canvas.toDataURL('image/png');
+      signatureImage.src = savedSignatureDataUrl;
+      signedPreview.style.display = 'flex';
+      drawPanel.style.display = 'none';
+      statusEl.textContent = '签名已确认并同步到正式签名栏。需要修改时请点击“清除重签”。';
+    }
+
+    function clearSignature() {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      hasDrawn = false;
+      savedSignatureDataUrl = '';
+      signatureImage.removeAttribute('src');
+      signedPreview.style.display = 'none';
+      drawPanel.style.display = 'block';
+      statusEl.textContent = '签名已清除，请重新签名。';
+    }
+
+    function printSignedDocument() {
+      if (!savedSignatureDataUrl) {
+        alert('请先点击“确认签名”，再打印或另存为 PDF。');
+        return;
+      }
+      window.print();
+    }
+
+    function downloadSignaturePng() {
+      if (!savedSignatureDataUrl) {
+        alert('请先点击“确认签名”，再下载签名图片。');
+        return;
+      }
+      const link = document.createElement('a');
+      const name = participantName.value.trim() || 'signature';
+      link.download = `${name}_签名.png`;
+      link.href = savedSignatureDataUrl;
+      link.click();
+    }
+  </script>
+</body>
+</html>
